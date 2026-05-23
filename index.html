@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TrackColis - Suivi de Colis</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #F1F5F9;
+      color: #1E293B;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1E293B;
+      padding: 0 32px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+    }
+    .logo { display: flex; align-items: center; gap: 12px; }
+    .logo-icon { font-size: 28px; }
+    .logo-title { color: #F8FAFC; font-weight: 700; font-size: 20px; }
+    .logo-sub { color: #94A3B8; font-size: 12px; }
+    nav { display: flex; gap: 8px; }
+    nav button {
+      padding: 8px 18px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      background: rgba(255,255,255,0.08);
+      color: #CBD5E1;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all .2s;
+    }
+    nav button.active { background: #6366F1; color: #fff; }
+
+    main { max-width: 1200px; margin: 0 auto; padding: 28px 24px; }
+
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .stat-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px 16px;
+      text-align: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    }
+    .stat-icon { font-size: 24px; margin-bottom: 4px; }
+    .stat-value { font-size: 32px; font-weight: 800; }
+    .stat-label { font-size: 13px; color: #6B7280; margin-top: 2px; }
+
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+      padding: 24px;
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .card-title { font-size: 18px; font-weight: 700; }
+
+    .search-wrap {
+      display: flex;
+      align-items: center;
+      background: #F1F5F9;
+      border-radius: 8px;
+      padding: 0 12px;
+      border: 1.5px solid #E2E8F0;
+      min-width: 300px;
+    }
+    .search-wrap input {
+      border: none;
+      background: transparent;
+      padding: 10px 0;
+      outline: none;
+      font-size: 14px;
+      width: 100%;
+      color: #1E293B;
+      margin-left: 8px;
+    }
+    #btn-clear-search {
+      background: none; border: none; cursor: pointer;
+      color: #94A3B8; font-size: 14px; display: none;
+    }
+
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th {
+      text-align: left;
+      padding: 10px 14px;
+      background: #F8FAFC;
+      color: #64748B;
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      border-bottom: 2px solid #E2E8F0;
+    }
+    td { padding: 12px 14px; border-bottom: 1px solid #F1F5F9; vertical-align: middle; }
+    tbody tr:nth-child(even) { background: #F9FAFB; }
+    .track-num {
+      font-family: monospace;
+      font-weight: 700;
+      color: #6366F1;
+      background: #EEF2FF;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .status-select {
+      border: none;
+      font-weight: 600;
+      font-size: 13px;
+      border-radius: 20px;
+      padding: 4px 10px;
+      outline: none;
+      cursor: pointer;
+    }
+    .btn-delete {
+      background: #FEF2F2;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 15px;
+    }
+    .btn-delete:hover { background: #FECACA; }
+    #empty-msg {
+      text-align: center;
+      color: #94A3B8;
+      padding: 48px 0;
+      font-size: 15px;
+    }
+    .result-count { margin-top: 12px; font-size: 13px; color: #6B7280; text-align: right; }
+
+    #vue-ajout { max-width: 560px; margin: 0 auto; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+    label { font-size: 14px; font-weight: 600; color: #374151; }
+    label span { color: #EF4444; }
+    input, textarea, select {
+      border: 1.5px solid #E2E8F0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 14px;
+      outline: none;
+      color: #1E293B;
+      font-family: inherit;
+      transition: border .2s;
+    }
+    input:focus, textarea:focus, select:focus { border-color: #6366F1; }
+    textarea { resize: vertical; }
+    .error-msg { font-size: 12px; color: #EF4444; display: none; }
+    .input-error { border-color: #EF4444 !important; }
+    .form-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 8px; }
+    .btn-primary {
+      background: #6366F1; color: #fff; border: none;
+      border-radius: 8px; padding: 10px 24px;
+      font-weight: 600; font-size: 14px; cursor: pointer;
+    }
+    .btn-primary:hover { background: #4F46E5; }
+    .btn-secondary {
+      background: #F1F5F9; color: #374151; border: none;
+      border-radius: 8px; padding: 10px 20px;
+      font-weight: 600; font-size: 14px; cursor: pointer;
+    }
+    .btn-secondary:hover { background: #E2E8F0; }
+
+    #toast {
+      position: fixed;
+      bottom: 24px; right: 24px;
+      color: #fff;
+      padding: 12px 22px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 14px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+      z-index: 999;
+      display: none;
+    }
+
+    #overlay {
+      position: fixed; inset: 0;
+      background: rgba(15,23,42,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+    }
+    #overlay.show { display: flex; }
+    .modal {
+      background: #fff;
+      border-radius: 14px;
+      padding: 32px 28px;
+      max-width: 380px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+    .modal-icon { font-size: 36px; margin-bottom: 12px; }
+    .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+    .modal-text { color: #6B7280; font-size: 14px; margin-bottom: 24px; }
+    .modal-actions { display: flex; gap: 12px; justify-content: center; }
+    .btn-danger { background: #EF4444; color: #fff; border: none; border-radius: 8px; padding: 10px 24px; font-weight: 600; font-size: 14px; cursor: pointer; }
+    .btn-danger:hover { background: #DC2626; }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="logo-icon">📦</span>
+    <div>
+      <div class="logo-title">TrackColis</div>
+      <div class="logo-sub">Système de suivi des livraisons</div>
+    </div>
+  </div>
+  <nav>
+    <button id="btn-liste" class="active" onclick="afficherVue('liste')">📋 Liste des colis</button>
+    <button id="btn-ajout" onclick="afficherVue('ajout')">➕ Ajouter un colis</button>
+  </nav>
+</header>
+
+<main>
+  <div class="stats">
+    <div class="stat-card" style="border-top: 4px solid #6366F1">
+      <div class="stat-icon">📦</div>
+      <div class="stat-value" id="stat-total">0</div>
+      <div class="stat-label">Total</div>
+    </div>
+    <div class="stat-card" style="border-top: 4px solid #F59E0B">
+      <div class="stat-icon">⏳</div>
+      <div class="stat-value" id="stat-attente">0</div>
+      <div class="stat-label">En attente</div>
+    </div>
+    <div class="stat-card" style="border-top: 4px solid #3B82F6">
+      <div class="stat-icon">🚚</div>
+      <div class="stat-value" id="stat-cours">0</div>
+      <div class="stat-label">En cours</div>
+    </div>
+    <div class="stat-card" style="border-top: 4px solid #10B981">
+      <div class="stat-icon">✅</div>
+      <div class="stat-value" id="stat-livre">0</div>
+      <div class="stat-label">Livrés</div>
+    </div>
+  </div>
+
+  <div id="vue-liste" class="card">
+    <div class="card-header">
+      <div class="card-title">Liste des colis</div>
+      <div class="search-wrap">
+        <span>🔍</span>
+        <input type="text" id="input-recherche" placeholder="Rechercher par numéro ou téléphone…" oninput="filtrer()" />
+        <button id="btn-clear-search" onclick="clearRecherche()">✕</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>N° Suivi</th>
+            <th>Client</th>
+            <th>Téléphone</th>
+            <th>Description</th>
+            <th>Statut</th>
+            <th>Date</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div id="empty-msg">Aucun colis enregistré pour l'instant.</div>
+    <div class="result-count hidden" id="result-count"></div>
+  </div>
+
+  <div id="vue-ajout" class="card hidden">
+    <div class="card-title" style="margin-bottom:20px">Enregistrer un nouveau colis</div>
+
+    <div class="form-group">
+      <label>Numéro de suivi <span>*</span></label>
+      <input type="text" id="f-numero" placeholder="Ex: COL-2024-001" />
+      <span class="error-msg" id="err-numero"></span>
+    </div>
+    <div class="form-group">
+      <label>Nom du client <span>*</span></label>
+      <input type="text" id="f-client" placeholder="Ex: Marie Dupont" />
+      <span class="error-msg" id="err-client"></span>
+    </div>
+    <div class="form-group">
+      <label>Téléphone <span>*</span></label>
+      <input type="tel" id="f-telephone" placeholder="Ex: +221 77 000 00 00" />
+      <span class="error-msg" id="err-telephone"></span>
+    </div>
+    <div class="form-group">
+      <label>Description <span>*</span></label>
+      <textarea id="f-description" rows="3" placeholder="Ex: Boîte de vêtements, fragile"></textarea>
+      <span class="error-msg" id="err-description"></span>
+    </div>
+    <div class="form-group">
+      <label>Statut</label>
+      <select id="f-statut">
+        <option value="En attente">⏳ En attente</option>
+        <option value="En cours">🚚 En cours</option>
+        <option value="Livré">✅ Livré</option>
+      </select>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn-secondary" onclick="afficherVue('liste')">Annuler</button>
+      <button class="btn-primary" onclick="enregistrer()">✅ Enregistrer le colis</button>
+    </div>
+  </div>
+</main>
+
+<div id="toast"></div>
+
+<div id="overlay">
+  <div class="modal">
+    <div class="modal-icon">🗑️</div>
+    <div class="modal-title">Supprimer ce colis ?</div>
+    <div class="modal-text" id="modal-text"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="fermerModal()">Annuler</button>
+      <button class="btn-danger" onclick="confirmerSuppression()">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API = "api.php";
+  let colis = [];
+  let numeroASupprimer = null;
+
+  const STATUS_STYLE = {
+    "En attente": { color: "#92400E", bg: "#FEF3C7" },
+    "En cours":   { color: "#1E40AF", bg: "#DBEAFE" },
+    "Livré":      { color: "#065F46", bg: "#D1FAE5" },
+  };
+
+  async function chargerColis() {
+    const res = await fetch(API);
+    colis = await res.json();
+    rafraichir();
+  }
+
+  async function sauvegarderNouveauColis(nouveau) {
+    await fetch(API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(nouveau)
+    });
+  }
+
+  async function supprimerColis(numero) {
+    await fetch(API, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ numero })
+    });
+  }
+
+  async function mettreAJourStatut(numero, statut) {
+    await fetch(API, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ numero, statut })
+    });
+  }
+
+  function afficherVue(vue) {
+    document.getElementById("vue-liste").classList.toggle("hidden", vue !== "liste");
+    document.getElementById("vue-ajout").classList.toggle("hidden", vue !== "ajout");
+    document.getElementById("btn-liste").classList.toggle("active", vue === "liste");
+    document.getElementById("btn-ajout").classList.toggle("active", vue === "ajout");
+    if (vue === "ajout") reinitialiserFormulaire();
+  }
+
+  function afficherColis(liste) {
+    const tbody = document.getElementById("tbody");
+    const emptyMsg = document.getElementById("empty-msg");
+    tbody.innerHTML = "";
+
+    if (liste.length === 0) {
+      emptyMsg.style.display = "block";
+      return;
+    }
+    emptyMsg.style.display = "none";
+
+    liste.forEach((c, i) => {
+      const st = STATUS_STYLE[c.statut] || STATUS_STYLE["En attente"];
+      const tr = document.createElement("tr");
+      tr.style.background = i % 2 === 0 ? "#fff" : "#F9FAFB";
+      tr.innerHTML = `
+        <td><span class="track-num">${c.numero}</span></td>
+        <td><strong>${c.client}</strong></td>
+        <td>${c.telephone}</td>
+        <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${c.description}">${c.description}</td>
+        <td>
+          <select class="status-select"
+            style="color:${st.color};background:${st.bg}"
+            onchange="changerStatut('${c.numero}', this.value)">
+            <option value="En attente" ${c.statut==='En attente'?'selected':''}>⏳ En attente</option>
+            <option value="En cours"   ${c.statut==='En cours'?'selected':''}>🚚 En cours</option>
+            <option value="Livré"      ${c.statut==='Livré'?'selected':''}>✅ Livré</option>
+          </select>
+        </td>
+        <td style="color:#9CA3AF;font-size:13px">${c.date}</td>
+        <td><button class="btn-delete" onclick="demanderSuppression('${c.numero}')">🗑</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function mettreAJourStats() {
+    document.getElementById("stat-total").textContent   = colis.length;
+    document.getElementById("stat-attente").textContent = colis.filter(c => c.statut === "En attente").length;
+    document.getElementById("stat-cours").textContent   = colis.filter(c => c.statut === "En cours").length;
+    document.getElementById("stat-livre").textContent   = colis.filter(c => c.statut === "Livré").length;
+  }
+
+  function rafraichir() {
+    filtrer();
+    mettreAJourStats();
+  }
+
+  function filtrer() {
+    const rech = document.getElementById("input-recherche").value.trim().toLowerCase();
+    const btnClear = document.getElementById("btn-clear-search");
+    const resultCount = document.getElementById("result-count");
+
+    btnClear.style.display = rech ? "block" : "none";
+
+    const filtre = rech
+      ? colis.filter(c =>
+          c.numero.toLowerCase().includes(rech) ||
+          c.telephone.toLowerCase().includes(rech)
+        )
+      : colis;
+
+    afficherColis(filtre);
+
+    if (rech && filtre.length > 0) {
+      resultCount.classList.remove("hidden");
+      resultCount.textContent = `${filtre.length} résultat(s) trouvé(s)`;
+    } else {
+      resultCount.classList.add("hidden");
+    }
+  }
+
+  function clearRecherche() {
+    document.getElementById("input-recherche").value = "";
+    filtrer();
+  }
+
+  async function changerStatut(numero, newStatut) {
+    await mettreAJourStatut(numero, newStatut);
+    await chargerColis();
+    showToast("Statut mis à jour.");
+  }
+
+  async function enregistrer() {
+    if (!valider()) return;
+
+    const nouveau = {
+      numero:      document.getElementById("f-numero").value.trim(),
+      client:      document.getElementById("f-client").value.trim(),
+      telephone:   document.getElementById("f-telephone").value.trim(),
+      description: document.getElementById("f-description").value.trim(),
+      statut:      document.getElementById("f-statut").value,
+      date:        new Date().toLocaleDateString("fr-FR"),
+    };
+
+    await sauvegarderNouveauColis(nouveau);
+    await chargerColis();
+    afficherVue("liste");
+    showToast("Colis enregistré avec succès !");
+  }
+
+  function valider() {
+    let ok = true;
+    const numero      = document.getElementById("f-numero").value.trim();
+    const client      = document.getElementById("f-client").value.trim();
+    const telephone   = document.getElementById("f-telephone").value.trim();
+    const description = document.getElementById("f-description").value.trim();
+
+    setErreur("numero", "");
+    setErreur("client", "");
+    setErreur("telephone", "");
+    setErreur("description", "");
+
+    if (!numero) { setErreur("numero", "Ce champ est requis."); ok = false; }
+    else if (colis.some(c => c.numero === numero)) { setErreur("numero", "Ce numéro existe déjà."); ok = false; }
+
+    if (!client) { setErreur("client", "Ce champ est requis."); ok = false; }
+
+    if (!telephone) { setErreur("telephone", "Ce champ est requis."); ok = false; }
+    else if (!/^\+?[\d\s\-]{8,}$/.test(telephone)) { setErreur("telephone", "Numéro de téléphone invalide."); ok = false; }
+
+    if (!description) { setErreur("description", "Ce champ est requis."); ok = false; }
+
+    return ok;
+  }
+
+  function setErreur(champ, msg) {
+    const input = document.getElementById("f-" + champ);
+    const errEl = document.getElementById("err-" + champ);
+    if (msg) {
+      input.classList.add("input-error");
+      errEl.textContent = msg;
+      errEl.style.display = "block";
+    } else {
+      input.classList.remove("input-error");
+      errEl.style.display = "none";
+    }
+  }
+
+  function reinitialiserFormulaire() {
+    ["numero","client","telephone","description"].forEach(c => {
+      document.getElementById("f-" + c).value = "";
+      setErreur(c, "");
+    });
+    document.getElementById("f-statut").value = "En attente";
+  }
+
+  function demanderSuppression(numero) {
+    numeroASupprimer = numero;
+    document.getElementById("modal-text").innerHTML =
+      `Le colis <strong>${numero}</strong> sera définitivement supprimé.`;
+    document.getElementById("overlay").classList.add("show");
+  }
+
+  function fermerModal() {
+    numeroASupprimer = null;
+    document.getElementById("overlay").classList.remove("show");
+  }
+
+  async function confirmerSuppression() {
+    await supprimerColis(numeroASupprimer);
+    await chargerColis();
+    fermerModal();
+    showToast("Colis supprimé.", "error");
+  }
+
+  let toastTimer = null;
+  function showToast(msg, type = "success") {
+    const el = document.getElementById("toast");
+    el.textContent = msg;
+    el.style.background = type === "error" ? "#EF4444" : "#10B981";
+    el.style.display = "block";
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.style.display = "none"; }, 3000);
+  }
+
+  chargerColis();
+</script>
+</body>
+</html>
